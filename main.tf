@@ -29,15 +29,36 @@ EOF
 
 ## IAM Role Policies
 
+resource "aws_iam_policy" "lambda_stream_policy" {
+  name        = "LambdaStreamPolicy"
+  description = "Provides InvokeFunction access to the Lambda Created for Kinesis"
+  
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "lambda:InvokeFunction"
+      ],
+      "Effect": "Allow",
+      "Resource": "${aws_lambda_function.kinesis_consumer.arn}"
+    }
+  ]
+}
+EOF
+}
+
 resource "aws_iam_role_policy_attachment" "terraform_lambda_iam_policy_basic_execution" {
   role = "${aws_iam_role.iam_for_terraform_lambda.id}"
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  policy_arn = "${aws_iam_policy.lambda_stream_policy.arn}"
 }
 
 resource "aws_iam_role_policy_attachment" "terraform_lambda_iam_policy_kinesis_execution" {
   role = "${aws_iam_role.iam_for_terraform_lambda.id}"
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaKinesisExecutionRole"
 }
+
 
 ## Kinesis Stream
 resource "aws_kinesis_stream" "test_stream" {
