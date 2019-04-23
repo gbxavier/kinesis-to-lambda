@@ -7,7 +7,7 @@ provider "archive" {
 }
 
 
-## IAM Role
+## IAM Role for Lambda Function
 resource "aws_iam_role" "iam_for_terraform_lambda" {
     name = "kinesis_streamer_iam_role"
     description = "Role for kinesis usage"
@@ -93,6 +93,12 @@ resource "aws_lambda_function" "kinesis_consumer" {
   runtime = "python3.7"
   source_code_hash = "${filebase64sha256("${data.archive_file.consumer_lambda.output_path}")}"
   timeout = 300 # 5 mins
+
+  environment = {
+    variables = {
+      s3_bucket = "${aws_s3_bucket.lambda_archive.bucket}"
+    }
+  }
 }
 
 resource "aws_lambda_event_source_mapping" "kinesis_lambda_event_mapping" {
@@ -101,4 +107,37 @@ resource "aws_lambda_event_source_mapping" "kinesis_lambda_event_mapping" {
     enabled = true
     function_name = "${aws_lambda_function.kinesis_consumer.arn}"
     starting_position = "TRIM_HORIZON"
+}
+
+## S3 Bucket
+
+resource "aws_s3_bucket" "lambda_archive" {
+  bucket = "${var.s3_archive_bucket_name}"
+  acl    = "private"
+
+  tags = {
+    Name = "S3 Bucket to archive records"
+  }
+}
+
+resource "aws_s3_bucket_policy" "lambda_archive" {
+  bucket = "${aws_s3_bucket.lambda_archive.bucket}"
+
+  policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Id": "LambdaArchivePolicy",
+  "Statement": [
+    {
+      "Sid": "Stmt1555978089647",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": [
+        "s3:PutObject"
+      ],
+      "Resource": "${aws_s3_bucket.lambda_archive.arn}/*"
+    }
+  ]
+}
+POLICY
 }

@@ -1,5 +1,6 @@
 from __future__ import print_function
 import json
+import os
 import base64
 import boto3
 
@@ -32,4 +33,27 @@ def invoke_self_async(event, context):
 
 
 def process_record(record):
-    print(base64.b64decode(record['kinesis']['data']))
+    """
+    This function receives the record and decide if the target is a S3 bucket or a DynamoDB table.
+    """
+    
+    data =json.loads(base64.b64decode(record['kinesis']['data']))
+    
+    if data['type'] == "archive":
+        
+        keylist = data.keys()
+        
+        object_body = ""
+        object_row = ""
+
+        for key in sorted(keylist):
+            object_body = object_body + "{},".format(key)
+            object_row = object_row + "{},".format(data[key])
+
+        object_body = object_body[:-1]
+        object_row = object_row[:-1]
+        object_data = "{}\n{}".format(object_body, object_row)
+        
+        # Create a new object with the event data.
+        boto3.client('s3').put_object(Body=bytes(object_data, "UTF-8"), Bucket=os.environ["s3_bucket"], Key="{}.csv".format(record['eventID']))
+       
