@@ -43,6 +43,13 @@ resource "aws_iam_policy" "lambda_stream_policy" {
       ],
       "Effect": "Allow",
       "Resource": "${aws_lambda_function.kinesis_consumer.arn}"
+    },
+    {
+      "Action": [
+        "dynamodb:PutItem"
+      ],
+      "Effect": "Allow",
+      "Resource": "${aws_dynamodb_table.stream-dynamodb-table.arn}"
     }
   ]
 }
@@ -97,6 +104,7 @@ resource "aws_lambda_function" "kinesis_consumer" {
   environment = {
     variables = {
       s3_bucket = "${aws_s3_bucket.lambda_archive.bucket}"
+      dynamodb_table = "${aws_dynamodb_table.stream-dynamodb-table.name}"
     }
   }
 }
@@ -140,4 +148,25 @@ resource "aws_s3_bucket_policy" "lambda_archive" {
   ]
 }
 POLICY
+}
+
+## DynamoDB
+
+resource "aws_dynamodb_table" "stream-dynamodb-table" {
+  name           = "${var.dynamoDB_table_name}"
+  read_capacity  = "${var.dynamoDB_read_capacity}"
+  write_capacity = "${var.dynamoDB_write_capacity}"
+  hash_key       = "${var.dynamoDB_hash_key}"
+  range_key      = "${var.dynamoDB_range_key}"
+
+  attribute {
+    name = "payload"
+    type = "S"
+  }
+
+  attribute {
+    name = "ts"
+    type = "S"
+  }
+
 }

@@ -37,23 +37,31 @@ def process_record(record):
     This function receives the record and decide if the target is a S3 bucket or a DynamoDB table.
     """
     
-    data =json.loads(base64.b64decode(record['kinesis']['data']))
+    data = json.loads(base64.b64decode(record['kinesis']['data']))
     
     if data['type'] == "archive":
-        
-        keylist = data.keys()
         
         object_body = ""
         object_row = ""
 
-        for key in sorted(keylist):
+        # Creating csv from json object
+        for key in sorted(data.keys()):
             object_body = object_body + "{},".format(key)
             object_row = object_row + "{},".format(data[key])
 
+        # Removing the extra comma
         object_body = object_body[:-1]
         object_row = object_row[:-1]
         object_data = "{}\n{}".format(object_body, object_row)
         
         # Create a new object with the event data.
-        boto3.client('s3').put_object(Body=bytes(object_data, "UTF-8"), Bucket=os.environ["s3_bucket"], Key="{}.csv".format(record['eventID']))
-       
+        try:
+            boto3.client('s3').put_object(Body=bytes(object_data, "UTF-8"), Bucket=os.environ["s3_bucket"], Key="{}.csv".format(record['eventID']))
+        except Exception as e:
+            print(e)
+    
+    elif data['type'] == "current":
+        # Create an item in DynamoDB
+        boto3.resource('dynamodb').Table(os.environ['dynamodb_table']).put_item(Item=data)
+    else:
+        print("We don't accept this type field's value.")
