@@ -139,7 +139,7 @@ resource "aws_s3_bucket_policy" "lambda_archive" {
     {
       "Sid": "Stmt1555978089647",
       "Effect": "Allow",
-      "Principal": "*",
+      "Principal": { "AWS": "${aws_iam_role.iam_for_terraform_lambda.arn}" },
       "Action": [
         "s3:PutObject"
       ],
@@ -168,5 +168,58 @@ resource "aws_dynamodb_table" "stream-dynamodb-table" {
     name = "ts"
     type = "S"
   }
+  lifecycle {
+     ignore_changes = ["read_capacity","write_capacity"]  #We want to ignore this because we're using app autoscaling
+  }
 
+}
+
+## DynamoDB APP AutoScaling
+
+resource "aws_appautoscaling_target" "dynamodb_table_read_target" {
+  max_capacity       = "${var.dynamoDB_read_max}"
+  min_capacity       = "${var.dynamoDB_read_min}"
+  resource_id        = "table/${aws_dynamodb_table.stream-dynamodb-table.id}"
+  scalable_dimension = "dynamodb:table:ReadCapacityUnits"
+  service_namespace  = "dynamodb"
+}
+
+resource "aws_appautoscaling_policy" "dynamodb_table_read_policy" {
+  name               = "DynamoDBReadCapacityUtilization:${aws_appautoscaling_target.dynamodb_table_read_target.resource_id}"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = "${aws_appautoscaling_target.dynamodb_table_read_target.resource_id}"
+  scalable_dimension = "${aws_appautoscaling_target.dynamodb_table_read_target.scalable_dimension}"
+  service_namespace  = "${aws_appautoscaling_target.dynamodb_table_read_target.service_namespace}"
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "DynamoDBReadCapacityUtilization"
+    }
+
+    target_value = "${var.dynamoDB_read_target}"  #set utilization to 70%
+  }
+}
+
+resource "aws_appautoscaling_target" "dynamodb_table_write_target" {
+  max_capacity       = "${var.dynamoDB_write_max}"
+  min_capacity       = "${var.dynamoDB_write_min}"
+  resource_id        = "table/${aws_dynamodb_table.stream-dynamodb-table.id}"
+  scalable_dimension = "dynamodb:table:WriteCapacityUnits"
+  service_namespace  = "dynamodb"
+}
+
+resource "aws_appautoscaling_policy" "dynamodb_table_write_policy" {
+  name               = "DynamoDBWriteCapacityUtilization:${aws_appautoscaling_target.dynamodb_table_write_target.resource_id}"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = "${aws_appautoscaling_target.dynamodb_table_write_target.resource_id}"
+  scalable_dimension = "${aws_appautoscaling_target.dynamodb_table_write_target.scalable_dimension}"
+  service_namespace  = "${aws_appautoscaling_target.dynamodb_table_write_target.service_namespace}"
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "DynamoDBWriteCapacityUtilization"
+    }
+
+    target_value = "${var.dynamoDB_write_target}"  #set utilization to 70%
+  }
 }

@@ -52,6 +52,7 @@ def process_record(record):
         # Removing the extra comma
         object_body = object_body[:-1]
         object_row = object_row[:-1]
+        # Creating a single string
         object_data = "{}\n{}".format(object_body, object_row)
         
         # Create a new object with the event data.
@@ -62,6 +63,9 @@ def process_record(record):
     
     elif data['type'] == "current":
         # Create an item in DynamoDB
-        boto3.resource('dynamodb').Table(os.environ['dynamodb_table']).put_item(Item=data)
+        try:
+            boto3.resource('dynamodb').Table(os.environ['dynamodb_table']).put_item(Item=data)
+        except Exception as e:
+            print(e)
     else:
         print("We don't accept this type field's value.")

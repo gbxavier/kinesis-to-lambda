@@ -37,3 +37,33 @@ variable "dynamoDB_range_key" {
     description = "DynamoDB table's range key"
     default = "ts"
 }
+
+variable "dynamoDB_read_target" {
+    description = "DynamoDB read target"
+    default = "70"
+}
+
+variable "dynamoDB_read_min" {
+    description = "DynamoDB read capacity minimun"
+    default = "5"
+}
+
+variable "dynamoDB_read_max" {
+    description = "DynamoDB read capacity maximun"
+    default = "20"
+}
+
+variable "dynamoDB_write_target" {
+    description = "DynamoDB write target"
+    default = "20"
+}
+
+variable "dynamoDB_write_min" {
+    description = "DynamoDB write capacity minimun"
+    default = "5"
+}
+
+variable "dynamoDB_write_max" {
+    description = "DynamoDB write capacity maximun"
+    default = "70"
+}
