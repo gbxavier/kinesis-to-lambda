@@ -12,6 +12,8 @@ def handler_kinesis(event, context):
     """
     
     if not 'async' in event:
+        # If the current execution is not async, 
+        # this function invokes itself in asyncronous mode for each event.
         for record in event['Records']:
             invoke_self_async(record, context)
         return "Invoking asyncronously"
@@ -25,6 +27,8 @@ def invoke_self_async(event, context):
     """
     event['async'] = True
     called_function = context.invoked_function_arn
+
+    # Invokes itself in asyncronous mode (Type equals Event)
     boto3.client('lambda').invoke(
         FunctionName=called_function,
         InvocationType='Event',
@@ -39,6 +43,7 @@ def process_record(record):
     
     data = json.loads(base64.b64decode(record['kinesis']['data']))
     
+    # If type is archive, the target is s3 Bucket
     if data['type'] == "archive":
         
         object_body = ""
@@ -61,6 +66,7 @@ def process_record(record):
         except Exception as e:
             print(e)
     
+    # If type is current, the target is DynamoDB Table
     elif data['type'] == "current":
         # Create an item in DynamoDB
         try:

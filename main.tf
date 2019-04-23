@@ -169,7 +169,7 @@ resource "aws_dynamodb_table" "stream-dynamodb-table" {
     type = "S"
   }
   lifecycle {
-     ignore_changes = ["read_capacity","write_capacity"]  #We want to ignore this because we're using app autoscaling
+     ignore_changes = ["read_capacity","write_capacity"]  #We want to ignore this, once we're using app autoscaling
   }
 
 }
@@ -196,7 +196,7 @@ resource "aws_appautoscaling_policy" "dynamodb_table_read_policy" {
       predefined_metric_type = "DynamoDBReadCapacityUtilization"
     }
 
-    target_value = "${var.dynamoDB_read_target}"  #set utilization to 70%
+    target_value = "${var.dynamoDB_read_target}"  #set utilization target
   }
 }
 
@@ -220,6 +220,6 @@ resource "aws_appautoscaling_policy" "dynamodb_table_write_policy" {
       predefined_metric_type = "DynamoDBWriteCapacityUtilization"
     }
 
-    target_value = "${var.dynamoDB_write_target}"  #set utilization to 70%
+    target_value = "${var.dynamoDB_write_target}"  #set utilization target
   }
 }
